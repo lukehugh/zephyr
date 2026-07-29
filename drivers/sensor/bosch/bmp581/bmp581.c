@@ -398,6 +398,17 @@ static int soft_reset(const struct device *dev)
 
 	if (ret == BMP5_OK) {
 		k_usleep(BMP5_DELAY_US_SOFT_RESET);
+
+		/*
+		 * Soft-reset returns the device to its power-up I2C/I3C mode.
+		 * Re-issue the SPI dummy read to switch the interface back to
+		 * SPI before reading the reset status.
+		 */
+		if (conf->bus.rtio.type == BMP581_BUS_TYPE_SPI) {
+			uint8_t dummy = 0;
+			(void)bmp581_reg_read_rtio(&conf->bus, BMP5_REG_CHIP_ID, &dummy, 1);
+		}
+
 		ret = get_interrupt_status(&int_status, dev);
 		if (ret == BMP5_OK) {
 			if ((int_status & BMP5_INT_ASSERTED_POR_SOFTRESET_COMPLETE) != 0) {
